@@ -43,22 +43,18 @@ epaisseur_cercle = 10
 # Facteur d'accélération à chaque collision
 facteur_acceleration = 0.2
 
-# Chargement du son
+# Chargement du son (version Sound pour superposition)
 try:
-    pygame.mixer.music.load("son.mp3")  # Utilisation de pygame.mixer.music pour des morceaux longs
+    son_collision = pygame.mixer.Sound("son.mp3")
 except pygame.error as e:
     print("Erreur lors du chargement du son :", e)
-    pygame.mixer.music = None  # Assurez-vous que le programme continue même si le son ne peut pas être chargé
-
-# Variables pour la gestion du son
-duree_minimale_son = 1000  # Durée minimale du son en millisecondes
-derniere_collision = 0  # Temps de la dernière collision
-son_joue = False  # Pour vérifier si le son est actuellement joué
+    son_collision = None
 
 # Variable pour savoir si la balle touche le cercle
 touche_cercle = False
 
 # Boucle principale
+clock = pygame.time.Clock()
 running = True
 while running:
     for event in pygame.event.get():
@@ -79,16 +75,14 @@ while running:
     pygame.draw.circle(fenetre, blanc, (largeur_fenetre // 2, hauteur_fenetre // 2), rayon_cercle, epaisseur_cercle)
 
     # Calcul de la distance entre la balle et le centre du cercle
-    distance_centre = math.sqrt((position_balle_x - largeur_fenetre // 2) ** 2 + (position_balle_y - hauteur_fenetre // 2) ** 2)
+    distance_centre = math.hypot(position_balle_x - largeur_fenetre // 2, position_balle_y - hauteur_fenetre // 2)
 
     # Vérification si la balle touche le cercle
     if distance_centre + rayon_balle >= rayon_cercle:
         if not touche_cercle:  # Si la balle touche le cercle pour la première fois
             touche_cercle = True
-            derniere_collision = pygame.time.get_ticks()  # Enregistrer le temps de la collision
-            if pygame.mixer.music and not pygame.mixer.music.get_busy():  # Si le son n'est pas déjà joué
-                pygame.mixer.music.play(-1)  # Lecture du son en boucle (indéfini)
-
+            if son_collision:
+                son_collision.play()
         # Calcul de l'angle de collision
         angle = math.atan2(position_balle_y - hauteur_fenetre // 2, position_balle_x - largeur_fenetre // 2)
 
@@ -111,11 +105,7 @@ while running:
         vitesse_balle_y *= (1 + facteur_acceleration)
 
     else:
-        if touche_cercle and pygame.mixer.music.get_busy():  # Si la balle ne touche plus le cercle et la musique joue
-            temps_ecoule = pygame.time.get_ticks() - derniere_collision
-            if temps_ecoule >= duree_minimale_son:
-                pygame.mixer.music.stop()  # Arrêt du son après la durée minimale
-                touche_cercle = False
+        touche_cercle = False  # Reset pour permettre le son à la prochaine collision
 
     # Dessin de la balle rouge
     pygame.draw.circle(fenetre, rouge, (int(position_balle_x), int(position_balle_y)), rayon_balle)
@@ -124,7 +114,7 @@ while running:
     pygame.display.flip()
 
     # Gestion du framerate (pour limiter la vitesse de la boucle)
-    pygame.time.Clock().tick(60)
+    clock.tick(60)
 
 # Fermeture de pygame
 pygame.quit()
